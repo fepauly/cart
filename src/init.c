@@ -5,7 +5,7 @@
 #include "string.h"
 
 int cmd_init(int argc, char *argv[]) {
-    if (argc < 2) {
+    if (argc == 1) {
         print_colored(ERROR_COLOR, "NOPE. Please provide a project name.\nFor more help try: cart init help");
         return -1;
     }

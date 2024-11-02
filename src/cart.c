@@ -37,10 +37,10 @@ int cart_handler_init_project_section(CartHandler *handler, Project *project) {
 
 int find_cart_file(char *filename, size_t size) {
     DIR *d;
-    struct dirent *dir;
 
     d = opendir(".");
     if (d) {
+        struct dirent *dir;
         while ((dir = readdir(d)) != NULL) {
             if (strstr(dir->d_name, ".cart") != NULL) {
                 strncpy(filename, dir->d_name, size - 1);
