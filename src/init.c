@@ -27,39 +27,55 @@ int cmd_init(int argc, char *argv[]) {
         return -1;
     }
 
-    Project project = {0};
-    strcpy(project.name, argv[1]);
+    // Create metadata name from inputs
+    Metadata metadata = {0};
+    strcpy(metadata.name, argv[1]);
 
+    // Get current date
     char date[11];
     get_currente_date(date, sizeof(date));
-    strcpy(project.created, date);
+    strcpy(metadata.created, date);
 
+    // Set metadata
     for (int i = 2; i < argc; i++) {
         if ((strcmp(argv[i], "--author") == 0 || strcmp(argv[i], "-a") == 0) && i + 1 < argc) {
-            strncpy(project.author, argv[i+1], sizeof(project.author) - 1);
+            strncpy(metadata.author, argv[i+1], sizeof(metadata.author) - 1);
         }
         else if ((strcmp(argv[i], "--version") == 0|| strcmp(argv[i], "-v") == 0) && i + 1 < argc) {
-            strncpy(project.version, argv[i+1], sizeof(project.version) - 1);
+            strncpy(metadata.version, argv[i+1], sizeof(metadata.version) - 1);
         }
         else if ((strcmp(argv[i], "--description") == 0 || strcmp(argv[i], "-d") == 0) && i + 1 < argc) {
-            strncpy(project.description, argv[i+1], sizeof(project.description) - 1);
+            strncpy(metadata.description, argv[i+1], sizeof(metadata.description) - 1);
         }
     }
 
+    // Set project file
     char project_file[260] = {0};
-    snprintf(project_file, sizeof(project_file), "%s.cart", project.name);
+    snprintf(project_file, sizeof(project_file), "%s.cart", metadata.name);
 
+    // Open project file
     CartHandler cartHandler;
     if (cart_handler_open(&cartHandler, project_file, "w") != 0) {
         print_colored(ERROR_COLOR, "Failed to create %s!", project_file);
         return -1;
     }
 
-
-    if (cart_handler_init_project_section(&cartHandler, &project) != 0) {
-        print_colored(ERROR_COLOR, "Error while creating CART file!");
+    // Initialize project with metadata
+    if (cart_handler_init_metadata(&cartHandler, &metadata) != 0) {
+        print_colored(ERROR_COLOR, "Error while initializing metadata in CART file!");
+        cart_handler_close(&cartHandler);
+        return -1;
     }
+
+    // Initialize project with features
+    if (cart_handler_init_features(&cartHandler) != 0) {
+        print_colored(ERROR_COLOR, "Error while initalizing features in CART file!");
+        cart_handler_close(&cartHandler);
+        return -1;
+    }
+
+    cart_handler_save(&cartHandler, project_file);
     cart_handler_close(&cartHandler);
-    print_colored(GREEN_COLOR, "Initialized project %s successfully!", project.name);
+    print_colored(GREEN_COLOR, "Initialized project %s successfully!", metadata.name);
     return 0;
 }

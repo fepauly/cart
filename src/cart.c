@@ -2,36 +2,87 @@
 #include <stdio.h>
 #include <string.h>
 #include <dirent.h>
+#include "pretty.h"
 
 int cart_handler_open(CartHandler *handler, const char *filename, const char *mode) {
-    handler->file = fopen(filename, mode);
-    return (handler->file != NULL) ? 0 : -1;
+    if (strcmp(mode, "w") == 0) {
+        handler->doc = xmlNewDoc(BAD_CAST "1.0");
+        handler->root_node = xmlNewNode(NULL, BAD_CAST "project");
+        xmlDocSetRootElement(handler->doc, handler->root_node);
+    } else if (strcmp(mode, "r") == 0) {
+        handler->doc = xmlParseFile(filename);
+        if(handler->doc == NULL) {
+            print_colored(ERROR_COLOR, "Failed to parse %s.\n", filename);
+            return -1;
+        }
+
+        handler->root_node = xmlDocGetRootElement(handler->doc);
+        if (handler->root_node == NULL) {
+            print_colored(ERROR_COLOR, "The project is empty my friend! (file: %s)", filename);
+            xmlFreeDoc(handler->doc);
+            handler->doc = NULL;
+            return -1;
+        } 
+    } else {
+        print_colored(ERROR_COLOR, "Invalid file mode: %s\n", mode);
+        return -1;
+    }
+    return 0;
 }
 
 int cart_handler_close(CartHandler *handler) {
-    if(handler->file) {
-        fclose(handler->file);
-        handler->file = NULL;
+    if(handler->doc) {
+        xmlFreeDoc(handler->doc);
+        handler->doc = NULL;
         return 0;
     }
+    print_colored(ERROR_COLOR, "File already closed!");
     return -1;
 }
 
-int cart_handler_init_project_section(CartHandler *handler, Project *project) {
-    if (handler == NULL || project == NULL || handler->file == NULL) {
+int cart_handler_save(CartHandler *handler, const char *filename) {
+    if (handler->doc == NULL || handler == NULL) {
+        print_colored(ERROR_COLOR, "File handler or document is NULL!");
+        return -1;
+    }
+
+    if (xmlSaveFormatFileEnc(filename, handler->doc, "UTF-8", 1) == -1) {
+        print_colored(ERROR_COLOR, "Failed to save CART file: %s", filename);
+        return -1;
+    }
+
+    return 0;
+} 
+
+int cart_handler_init_metadata(CartHandler *handler, Metadata *metadata) {
+    if (handler == NULL || metadata == NULL || handler->doc == NULL) {
         return -1;
     }
     
-    fprintf(handler->file, "[Project]\n");
-    fprintf(handler->file, "Name: %s\n", project->name);
-    fprintf(handler->file, "Description: %s\n", project->description);
-    fprintf(handler->file, "Author: %s\n", project->author);
-    fprintf(handler->file, "Created: %s\n", project->created);
-    if (strlen(project->version) > 0) {
-        fprintf(handler->file, "Version: %s\n", project->version);
+    xmlNodePtr metadata_node = xmlNewNode(NULL, BAD_CAST "metadata");
+    xmlAddChild(handler->root_node, metadata_node);
+
+    xmlNewChild(metadata_node, NULL, BAD_CAST "name", BAD_CAST metadata->name);
+    xmlNewChild(metadata_node, NULL, BAD_CAST "description", BAD_CAST metadata->description);
+    xmlNewChild(metadata_node, NULL, BAD_CAST "author", BAD_CAST metadata->author);
+    if (strlen(metadata->version) > 0) {
+        xmlNewChild(metadata_node, NULL, BAD_CAST "version", BAD_CAST metadata->version);
     } else {
-        fprintf(handler->file, "Version: 1.0\n");
+        xmlNewChild(metadata_node, NULL, BAD_CAST "version", BAD_CAST "1.0");
     }
+    xmlNewChild(metadata_node, NULL, BAD_CAST "created", BAD_CAST metadata->created);
+    xmlNewChild(metadata_node, NULL, BAD_CAST "deadline", BAD_CAST metadata->deadline);
+
+    return 0;
+}
+
+int cart_handler_init_features(CartHandler *handler) {
+    if (handler == NULL || handler->doc == NULL) {
+        return -1;
+    }
+    xmlNodePtr features_node = xmlNewNode(NULL, BAD_CAST "features");
+    xmlAddChild(handler->root_node, features_node);
+
     return 0;
 }
 
