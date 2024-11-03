@@ -10,5 +10,6 @@ typedef struct {
 } Command;
 
 extern Command commands[];
+extern Command meta_commands[];
 
 #endif

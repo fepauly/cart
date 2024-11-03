@@ -74,7 +74,11 @@ int cmd_init(int argc, char *argv[]) {
         return -1;
     }
 
-    cart_handler_save(&cartHandler, project_file);
+    if (cart_handler_save(&cartHandler, project_file) != 0) {
+        cart_handler_close(&cartHandler);
+        print_colored(GREEN_COLOR, "Failed to initialize project %s!", metadata.name);
+        return -1;
+    }
     cart_handler_close(&cartHandler);
     print_colored(GREEN_COLOR, "Initialized project %s successfully!", metadata.name);
     return 0;

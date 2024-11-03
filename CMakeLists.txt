@@ -11,6 +11,7 @@ set(SOURCES
     src/pretty.c
     src/cart.c
     src/helper.c
+    src/meta.c
 )
 
 find_package(LibXml2 REQUIRED)

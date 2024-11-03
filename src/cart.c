@@ -5,11 +5,11 @@
 #include "pretty.h"
 
 int cart_handler_open(CartHandler *handler, const char *filename, const char *mode) {
-    if (strcmp(mode, "w") == 0) {
+    if (strcmp(mode, "w") == 0) { // write
         handler->doc = xmlNewDoc(BAD_CAST "1.0");
         handler->root_node = xmlNewNode(NULL, BAD_CAST "project");
         xmlDocSetRootElement(handler->doc, handler->root_node);
-    } else if (strcmp(mode, "r") == 0) {
+    } else if (strcmp(mode, "r+") == 0) { // read and write
         handler->doc = xmlParseFile(filename);
         if(handler->doc == NULL) {
             print_colored(ERROR_COLOR, "Failed to parse %s.\n", filename);
@@ -84,6 +84,71 @@ int cart_handler_init_features(CartHandler *handler) {
     xmlAddChild(handler->root_node, features_node);
 
     return 0;
+}
+
+int cart_handler_update_meta_entry(CartHandler *handler, const char *entry, const char *new_value) {
+    xmlNode *currentNode = handler->root_node->children;
+    xmlNode *metadata_node = NULL;
+    // Get metadata node
+    while (currentNode != NULL) {
+        if (strcmp((const char*)currentNode->name, "metadata") == 0) {
+            metadata_node = currentNode;
+            break;
+        }
+        currentNode = currentNode->next;
+    }
+    int updated = 0;
+    if (metadata_node != NULL) {
+        currentNode = metadata_node->children;
+        while (currentNode != NULL) {
+            if (strcmp((const char *)currentNode->name, entry) == 0) {
+                xmlNodeSetContent(currentNode, BAD_CAST new_value);
+                updated = 1;
+                break;
+            }
+            currentNode = currentNode->next;
+        }
+    } else {
+        print_colored(ERROR_COLOR, "Metadata node not found in your project my friend!");
+        return -1;
+    }
+    return updated == 1 ? 0 : -1;
+}
+
+int cart_handler_get_meta_entry(CartHandler *handler, const char *entry, char *value) {
+    xmlNode *currentNode = handler->root_node->children;
+    xmlNode *metadata_node = NULL;
+    // Get metadata node
+    while (currentNode != NULL) {
+        if (strcmp((const char*)currentNode->name, "metadata") == 0) {
+            metadata_node = currentNode;
+            break;
+        }
+        currentNode = currentNode->next;
+    }
+    int entry_found = 0;
+    if (metadata_node != NULL) {
+        currentNode = metadata_node->children;
+        while (currentNode != NULL) {
+            if (strcmp((const char *)currentNode->name, entry) == 0) {
+                char* content = (char *)xmlNodeGetContent(currentNode);
+                if (content) {
+                    strncpy(value, content, 511);
+                    value[511] = '\0';
+                    xmlFree(content);
+                    entry_found = 1;
+                } else {
+                    return -1;
+                }
+                break;
+            }
+            currentNode = currentNode->next;
+        }
+    } else {
+        print_colored(ERROR_COLOR, "Metadata node not found in your project my friend!");
+        return -1;
+    }
+    return entry_found == 1 ? 0 : -1;
 }
 
 int find_cart_file(char *filename, size_t size) {
