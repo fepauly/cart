@@ -86,7 +86,7 @@ int cart_handler_init_features(CartHandler *handler) {
     return 0;
 }
 
-int cart_handler_update_meta_entry(CartHandler *handler, const char *entry, const char *new_value) {
+int cart_handler_set_meta_entry(CartHandler *handler, const char *entry, const char *new_value) {
     xmlNode *currentNode = handler->root_node->children;
     xmlNode *metadata_node = NULL;
     // Get metadata node
@@ -115,7 +115,7 @@ int cart_handler_update_meta_entry(CartHandler *handler, const char *entry, cons
     return updated == 1 ? 0 : -1;
 }
 
-int cart_handler_get_meta_entry(CartHandler *handler, const char *entry, char *value) {
+int cart_handler_get_meta_entry(CartHandler *handler, const char *entry, char *value, size_t value_size) {
     xmlNode *currentNode = handler->root_node->children;
     xmlNode *metadata_node = NULL;
     // Get metadata node
@@ -133,8 +133,8 @@ int cart_handler_get_meta_entry(CartHandler *handler, const char *entry, char *v
             if (strcmp((const char *)currentNode->name, entry) == 0) {
                 char* content = (char *)xmlNodeGetContent(currentNode);
                 if (content) {
-                    strncpy(value, content, 511);
-                    value[511] = '\0';
+                    strncpy(value, content, value_size - 1);
+                    value[value_size - 1] = '\0';
                     xmlFree(content);
                     entry_found = 1;
                 } else {

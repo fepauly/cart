@@ -12,6 +12,7 @@ set(SOURCES
     src/cart.c
     src/helper.c
     src/meta.c
+    src/deadline.c
 )
 
 find_package(LibXml2 REQUIRED)

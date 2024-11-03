@@ -11,7 +11,8 @@ int cmd_meta(int argc, char *argv[]) {
     }
 
     if (strcmp(argv[1], "help") == 0) {
-        printf("Usage: cart meta <subcommand> [options]\n\nSubcommands:\n  update: Update a metadata entry.\n  get: Get a metadata entry.\n");
+        printf("Usage: cart meta <subcommand> [options]\n\nSubcommands:\n  set: set a metadata entry.\n  get: Get a metadata entry.\n"
+                "  list: List all metadata entries.\n");
         return 0;
     }
 
@@ -25,13 +26,22 @@ int cmd_meta(int argc, char *argv[]) {
     return -1;
 }
 
-int cmd_meta_update(int argc, char *argv[]) {
+int cmd_meta_set(int argc, char *argv[]) {
     if (argc > 1 && strcmp(argv[1], "help") == 0) {
-        printf("Usage: cart meta update <entry> <value>\n");
+        printf("Usage: cart meta set <entry> <value>\n");
+        return 0;
+    }
+    if (argc > 1 && strcmp(argv[1], "created") == 0) {
+        printf("The entry 'created' cannot be updated. Sorry.\n");
+        return 0;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "deadline") == 0) {
+        printf("To set the deadline use: cart deadline set -d <day> -m <month> -y <year>\n");
         return 0;
     }
     if (argc == 2) {
-        print_colored(ERROR_COLOR, "NOPE. There are values missing my friend. Usage: cart meta update <entry> <value>");
+        print_colored(ERROR_COLOR, "NOPE. There are values missing my friend. Usage: cart meta set <entry> <value>");
         return -1;
     }
 
@@ -54,14 +64,14 @@ int cmd_meta_update(int argc, char *argv[]) {
     const char *entry = argv[1];
     const char *new_value = argv[2];
 
-    if (cart_handler_update_meta_entry(&cartHandler, entry, new_value) != 0) {
+    if (cart_handler_set_meta_entry(&cartHandler, entry, new_value) != 0) {
         print_colored(ERROR_COLOR, "Failed to set metadata entry!");
         cart_handler_close(&cartHandler);
         return -1;
     }
 
     if (cart_handler_save(&cartHandler, filename) != 0) {
-        print_colored(ERROR_COLOR, "Failed to update metadata entry to file!");
+        print_colored(ERROR_COLOR, "Failed to set metadata entry to file!");
         cart_handler_close(&cartHandler);
         return -1;
     }
@@ -99,7 +109,7 @@ int cmd_meta_get(int argc, char *argv[]) {
     const char *entry = argv[1];
     char value[512] = {0};
 
-    if (cart_handler_get_meta_entry(&cartHandler, entry, value) != 0) {
+    if (cart_handler_get_meta_entry(&cartHandler, entry, value, sizeof(value)) != 0) {
         print_colored(ERROR_COLOR, "Entry not found or empty!");
         cart_handler_close(&cartHandler);
         return -1;

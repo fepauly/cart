@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 int cmd_meta(int argc, char *argv[]);
-int cmd_meta_update(int argc, char *argv[]);
+int cmd_meta_set(int argc, char *argv[]);
 int cmd_meta_get(int argc, char *argv[]);
 int cmd_meta_list(int argc, char *argv[]);
 

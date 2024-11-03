@@ -33,7 +33,7 @@ int cmd_init(int argc, char *argv[]) {
 
     // Get current date
     char date[11];
-    get_currente_date(date, sizeof(date));
+    get_current_date_str(date, sizeof(date));
     strcpy(metadata.created, date);
 
     // Set metadata
