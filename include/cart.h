@@ -62,5 +62,6 @@ int cart_handler_save(CartHandler *handler, const char *filename);
 int cart_handler_init_features(CartHandler *handler);
 int cart_handler_update_meta_entry(CartHandler *handler, const char *entry, const char *new_value);
 int cart_handler_get_meta_entry(CartHandler *handler, const char *entry, char* value);
+int cart_handler_list_meta(CartHandler *handler);
 
 #endif

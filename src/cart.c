@@ -151,6 +151,41 @@ int cart_handler_get_meta_entry(CartHandler *handler, const char *entry, char *v
     return entry_found == 1 ? 0 : -1;
 }
 
+int cart_handler_list_meta(CartHandler *handler) {
+    xmlNode *currentNode = handler->root_node->children;
+    xmlNode *metadata_node = NULL;
+    // Get metadata node
+    while (currentNode != NULL) {
+        if (strcmp((const char*)currentNode->name, "metadata") == 0) {
+            metadata_node = currentNode;
+            break;
+        }
+        currentNode = currentNode->next;
+    }
+    if (metadata_node != NULL) {
+        currentNode = metadata_node->children;
+        char buf[512] = {0};
+        while (currentNode != NULL) {
+            if (currentNode->type == XML_ELEMENT_NODE) {
+                char* content = (char *)xmlNodeGetContent(currentNode);
+                if (content) {
+                    strncpy(buf, content, 511);
+                    buf[511] = '\0';
+                    print_colored(GREEN_COLOR, "%s: %s", (char *)currentNode->name, buf);
+                    xmlFree(content);
+                } else {
+                    print_colored(ERROR_COLOR, "Missing content in node %s", (char *)currentNode->name);
+                }
+            }
+            currentNode = currentNode->next;
+        }
+    } else {
+        print_colored(ERROR_COLOR, "Metadata node not found in your project my friend!");
+        return -1;
+    }
+    return 0;
+}
+
 int find_cart_file(char *filename, size_t size) {
     DIR *d;
 

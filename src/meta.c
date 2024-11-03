@@ -38,7 +38,7 @@ int cmd_meta_update(int argc, char *argv[]) {
 
     char filename[260] = {0};
     if (find_cart_file(filename, sizeof(filename)) == 0) {
-        print_colored(GREEN_COLOR, "Found project: %s", filename);
+        print_colored(BLUE_COLOR, "Found project: %s\n", filename);
     } else {
         print_colored(ERROR_COLOR, "Couldn't find a CART project in current directory my friend!");
         return -1;
@@ -65,6 +65,7 @@ int cmd_meta_update(int argc, char *argv[]) {
         cart_handler_close(&cartHandler);
         return -1;
     }
+    xmlCleanupParser();
     cart_handler_close(&cartHandler);
     print_colored(GREEN_COLOR, "Updated metadata entry %s to '%s' successfully!", entry, new_value);
     return 0;
@@ -82,7 +83,7 @@ int cmd_meta_get(int argc, char *argv[]) {
 
     char filename[260] = {0};
     if (find_cart_file(filename, sizeof(filename)) == 0) {
-        print_colored(GREEN_COLOR, "Found project: %s", filename);
+        print_colored(BLUE_COLOR, "Found project: %s\n", filename);
     } else {
         print_colored(ERROR_COLOR, "Couldn't find a CART project in current directory my friend!");
         return -1;
@@ -103,7 +104,39 @@ int cmd_meta_get(int argc, char *argv[]) {
         cart_handler_close(&cartHandler);
         return -1;
     }
+    xmlCleanupParser();
     cart_handler_close(&cartHandler);
     print_colored(GREEN_COLOR, "%s: %s", entry, value);
+    return 0;
+}
+
+int cmd_meta_list(int argc, char *argv[]) {
+    if (argc > 1 && strcmp(argv[1], "help") == 0) {
+        printf("Usage: cart meta list\n");
+        return 0;
+    }
+
+    char filename[260] = {0};
+    if (find_cart_file(filename, sizeof(filename)) == 0) {
+        print_colored(BLUE_COLOR, "Found project: %s\n", filename);
+    } else {
+        print_colored(ERROR_COLOR, "Couldn't find a CART project in current directory my friend!");
+        return -1;
+    }
+
+    // Open project file
+    CartHandler cartHandler;
+    if (cart_handler_open(&cartHandler, filename, "r+") != 0) {
+        print_colored(ERROR_COLOR, "Failed to read %s!", filename);
+        return -1;
+    }
+
+    if (cart_handler_list_meta(&cartHandler) != 0) {
+        print_colored(ERROR_COLOR, "Error parsing metadata!");
+        cart_handler_close(&cartHandler);
+        return -1;
+    }
+    xmlCleanupParser();
+    cart_handler_close(&cartHandler);
     return 0;
 }
