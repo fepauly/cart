@@ -41,7 +41,7 @@ int cart_handler_close(CartHandler *handler) {
 }
 
 int cart_handler_save(CartHandler *handler, const char *filename) {
-    if (handler->doc == NULL || handler == NULL) {
+    if (handler == NULL || handler->doc == NULL) {
         print_colored(ERROR_COLOR, "File handler or document is NULL!");
         return -1;
     }
