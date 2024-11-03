@@ -163,15 +163,13 @@ int cart_handler_list_meta(CartHandler *handler) {
         currentNode = currentNode->next;
     }
     if (metadata_node != NULL) {
+        print_colored(BLUE_COLOR, "🗂  Project Metadata:\n");
         currentNode = metadata_node->children;
-        char buf[512] = {0};
         while (currentNode != NULL) {
             if (currentNode->type == XML_ELEMENT_NODE) {
                 char* content = (char *)xmlNodeGetContent(currentNode);
                 if (content) {
-                    strncpy(buf, content, 511);
-                    buf[511] = '\0';
-                    print_colored(GREEN_COLOR, "%s: %s", (char *)currentNode->name, buf);
+                    print_colored(GREEN_COLOR, "🔹 %-12s: %s\n", (const char *)currentNode->name, content);
                     xmlFree(content);
                 } else {
                     print_colored(ERROR_COLOR, "Missing content in node %s", (char *)currentNode->name);
