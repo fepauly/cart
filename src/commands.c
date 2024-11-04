@@ -20,5 +20,6 @@ Command meta_commands[] = {
 Command deadline_commands[] = {
     {"set", cmd_deadline_set, "set the deadline. Usage: cart deadline set -d <day> -m <month> -y <year>"},
     {"get", cmd_deadline_get, "Get the project deadline. Usage: cart deadline get"},
+    {"check", cmd_deadline_check, "Check the project deadline and get the days left until deadline. Usage: cart deadline check"},
     {NULL, NULL, NULL}
 };

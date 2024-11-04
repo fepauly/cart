@@ -53,8 +53,13 @@ int cmd_deadline_set(int argc, char *argv[]) {
         return -1;
     }
 
+    struct tm date = {0};
     int current_day, current_month, current_year;
-    get_current_date(&current_day, &current_month, &current_year);
+    get_current_date(&date);
+    
+    current_day = date.tm_mday;
+    current_month = date.tm_mon + 1;
+    current_year = date.tm_year + 1900;
 
     if (day < 1 || day > 31 || month < 1 || month > 12 || year < current_year ||
         (year == current_year && month < current_month) ||
@@ -126,8 +131,77 @@ int cmd_deadline_get(int argc, char *argv[]) {
         cart_handler_close(&cartHandler);
         return -1;
     }
+
     xmlCleanupParser();
     cart_handler_close(&cartHandler);
+    if (strlen(value) == 0) {
+        print_colored(ERROR_COLOR, "No deadline set for the project! Use 'cart deadline set -d <day> -m <month> -y <year>'");
+        return -1;
+    }
     print_colored(GREEN_COLOR, "%s: %s", "deadline", value);
+    return 0;
+}
+
+int cmd_deadline_check(int argc, char *argv[]) {
+    if (argc > 1 && strcmp(argv[1], "help") == 0) {
+        printf("Usage: cart deadline check\n");
+        return 0;
+    }
+
+    char filename[260] = {0};
+    if (find_cart_file(filename, sizeof(filename)) == 0) {
+        print_colored(BLUE_COLOR, "Found project: %s\n", filename);
+    } else {
+        print_colored(ERROR_COLOR, "Couldn't find a CART project in current directory my friend!");
+        return -1;
+    }
+
+    // Open project file
+    CartHandler cartHandler;
+    if (cart_handler_open(&cartHandler, filename, "r+") != 0) {
+        print_colored(ERROR_COLOR, "Failed to read %s!", filename);
+        return -1;
+    }
+
+    char value[11] = {0};
+    if (cart_handler_get_meta_entry(&cartHandler, "deadline", value, sizeof(value)) != 0) {
+        print_colored(ERROR_COLOR, "Entry not found or empty!");
+        cart_handler_close(&cartHandler);
+        return -1;
+    }
+
+    if (strlen(value) == 0) {
+        print_colored(ERROR_COLOR, "No deadline set for the project! Use 'cart deadline set -d <day> -m <month> -y <year>'");
+        xmlCleanupParser();
+        cart_handler_close(&cartHandler);
+        return -1;
+    }
+    int days_between;
+    struct tm datenow = {0};
+    struct tm datedeadline = {0};
+    if (get_current_date(&datenow) != 0) {
+        print_colored(ERROR_COLOR, "Error while getting current date!");
+        xmlCleanupParser();
+        cart_handler_close(&cartHandler);
+        return -1;
+    }
+    if (convert_str_to_date(value, &datedeadline) != 0) {
+        print_colored(ERROR_COLOR, "Error converting string to date!");
+        xmlCleanupParser();
+        cart_handler_close(&cartHandler);
+        return -1;
+    }
+
+    days_between = days_between_dates(&datenow, &datedeadline);
+    if (days_between < 0) {
+        print_colored(ERROR_COLOR, "OH OH. Deadline already met my friend!\n\U000023F1 : %s", value);
+    } else if (days_between == 0) {
+        print_colored(ERROR_COLOR, "WOW. Less than a day left my friend! Hurry up!\n\U000023F1 : %s", value);
+    } else {
+        print_colored(GREEN_COLOR, "You have %d day(s) left my friend!\n\U000023F1 : %s", days_between, value);
+    }
+
+    xmlCleanupParser();
+    cart_handler_close(&cartHandler);
     return 0;
 }
