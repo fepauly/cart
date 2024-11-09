@@ -12,5 +12,6 @@ typedef struct {
 extern Command commands[];
 extern Command meta_commands[];
 extern Command deadline_commands[];
+extern Command feature_commands[];
 
 #endif

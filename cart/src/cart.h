@@ -18,11 +18,19 @@ typedef struct {
     char version[10];
 } Metadata;
 
+typedef enum {
+    STATUS_OPEN,
+    STATUS_IN_PROGRESS,
+    STATUS_DONE,
+    STATUS_UNKNOWN
+} FeatureStatus;
+
 typedef struct {
+    int id;
     char title[256];
     char category[50];
     char description[512];
-    char status[50];
+    FeatureStatus status;
 } Requirement;
 
 typedef struct {
@@ -30,8 +38,11 @@ typedef struct {
 } Tag;
 
 typedef struct {
-    char title[256];
-    char status[50];
+    int id;
+    char name[256];
+    char description[512];
+    char alias[50];
+    FeatureStatus status;
     Requirement requirements[MAX_REQUIREMENTS];
     int num_requirements;
     Tag tags[MAX_TAGS];

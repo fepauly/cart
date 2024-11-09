@@ -6,7 +6,7 @@
 #include <string.h>
 
 int cmd_deadline(int argc, char *argv[]) {
-        if (argc < 2) {
+    if (argc < 2) {
         print_colored(ERROR_COLOR, "NOPE. There is a command missing my friend. Usage: cart deadline <subcommand> [options]");
         return -1;
     }
