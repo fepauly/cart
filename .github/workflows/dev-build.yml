@@ -22,4 +22,4 @@ jobs:
           sudo apt-get install bazel
       
       - name: Build
-        run: bazel buil //main:cart 
+        run: bazel build //main:cart 
