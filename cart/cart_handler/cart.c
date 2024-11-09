@@ -354,14 +354,16 @@ void free_cart(Cart *cart) {
     
     if (cart->metadata != NULL) {
         free(cart->metadata);
+        cart->metadata = NULL;
     }
-
     if (cart->features != NULL) {
         for (int i = 0; i < cart->num_features; i++) {
             if (cart->features[i] != NULL) {
                 free(cart->features[i]);
+                cart->features[i] = NULL;
             }
         }
         free(cart->features);
+        cart->features = NULL;
     }
 }
