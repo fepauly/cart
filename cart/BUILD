@@ -1,7 +1,6 @@
 cc_library(
     name = "cart_lib",
     srcs = [
-        "src/cart.c",
         "src/commands.c",
         "src/deadline.c",
         "src/feature.c",
@@ -9,7 +8,6 @@ cc_library(
         "src/meta.c",
     ],
     hdrs = [
-        "src/cart.h",
         "src/commands.h",
         "src/deadline.h",
         "src/feature.h",
@@ -17,7 +15,7 @@ cc_library(
         "src/meta.h",
     ],
     deps = [
-        "//cart/utils:utils_lib"
+        "//cart/cart_handler:cart_handler_lib",
     ],
     includes = ["src"],
     copts = ["-I/usr/include/libxml2"],

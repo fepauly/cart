@@ -46,7 +46,7 @@ int cmd_meta_set(int argc, char *argv[]) {
     }
 
 
-    char filename[260] = {0};
+    char filename[MAX_STR_LEN] = {0};
     if (find_cart_file(filename, sizeof(filename)) == 0) {
         print_colored(BLUE_COLOR, "Found project: %s\n", filename);
     } else {
@@ -56,16 +56,29 @@ int cmd_meta_set(int argc, char *argv[]) {
 
     // Open project file
     CartHandler cartHandler;
-    if (cart_handler_open(&cartHandler, filename, "r+") != 0) {
+    Cart cart = {0};
+    if (cart_handler_open(&cartHandler, filename) != 0) {
         print_colored(ERROR_COLOR, "Failed to read %s!", filename);
+        return -1;
+    }
+
+    if(cart_handler_read_project(&cartHandler, &cart) != 0) {
+        print_colored(ERROR_COLOR, "Error interpreting XML!");
+        cart_handler_close(&cartHandler);
         return -1;
     }
 
     const char *entry = argv[1];
     const char *new_value = argv[2];
 
-    if (cart_handler_set_meta_entry(&cartHandler, entry, new_value) != 0) {
+    if (cart_handler_set_meta_entry(&cart, entry, new_value) != 0) {
         print_colored(ERROR_COLOR, "Failed to set metadata entry!");
+        cart_handler_close(&cartHandler);
+        return -1;
+    }
+
+    if(cart_handler_write_project(&cartHandler, &cart) != 0) {
+        print_colored(ERROR_COLOR, "Error interpreting XML!");
         cart_handler_close(&cartHandler);
         return -1;
     }
@@ -77,6 +90,7 @@ int cmd_meta_set(int argc, char *argv[]) {
     }
     xmlCleanupParser();
     cart_handler_close(&cartHandler);
+    free_cart(&cart);
     print_colored(GREEN_COLOR, "Updated metadata entry %s to '%s' successfully!", entry, new_value);
     return 0;
 }
@@ -91,7 +105,7 @@ int cmd_meta_get(int argc, char *argv[]) {
         return 0;
     }
 
-    char filename[260] = {0};
+    char filename[MAX_STR_LEN] = {0};
     if (find_cart_file(filename, sizeof(filename)) == 0) {
         print_colored(BLUE_COLOR, "Found project: %s\n", filename);
     } else {
@@ -101,21 +115,29 @@ int cmd_meta_get(int argc, char *argv[]) {
 
     // Open project file
     CartHandler cartHandler;
-    if (cart_handler_open(&cartHandler, filename, "r+") != 0) {
+    if (cart_handler_open(&cartHandler, filename) != 0) {
         print_colored(ERROR_COLOR, "Failed to read %s!", filename);
         return -1;
     }
 
     const char *entry = argv[1];
-    char value[512] = {0};
+    char value[MAX_STR_LEN] = {0};
+    Cart cart = {0};
 
-    if (cart_handler_get_meta_entry(&cartHandler, entry, value, sizeof(value)) != 0) {
+    if(cart_handler_read_project(&cartHandler, &cart) != 0) {
+        print_colored(ERROR_COLOR, "Error interpreting XML!");
+        cart_handler_close(&cartHandler);
+        return -1;
+    }
+
+    if (cart_handler_get_meta_entry(&cart, entry, value) != 0) {
         print_colored(ERROR_COLOR, "Entry not found or empty!");
         cart_handler_close(&cartHandler);
         return -1;
     }
     xmlCleanupParser();
     cart_handler_close(&cartHandler);
+    free_cart(&cart);
     print_colored(GREEN_COLOR, "%s: %s", entry, value);
     return 0;
 }
@@ -126,7 +148,7 @@ int cmd_meta_list(int argc, char *argv[]) {
         return 0;
     }
 
-    char filename[260] = {0};
+    char filename[MAX_STR_LEN] = {0};
     if (find_cart_file(filename, sizeof(filename)) == 0) {
         print_colored(BLUE_COLOR, "Found project: %s\n", filename);
     } else {
@@ -136,17 +158,25 @@ int cmd_meta_list(int argc, char *argv[]) {
 
     // Open project file
     CartHandler cartHandler;
-    if (cart_handler_open(&cartHandler, filename, "r+") != 0) {
+    Cart cart = {0};
+    if (cart_handler_open(&cartHandler, filename) != 0) {
         print_colored(ERROR_COLOR, "Failed to read %s!", filename);
         return -1;
     }
 
-    if (cart_handler_list_meta(&cartHandler) != 0) {
-        print_colored(ERROR_COLOR, "Error parsing metadata!");
+    if(cart_handler_read_project(&cartHandler, &cart) != 0) {
+        print_colored(ERROR_COLOR, "Error interpreting XML!");
+        cart_handler_close(&cartHandler);
+        return -1;
+    }
+
+    if (cart_handler_list_meta(&cart) != 0) {
+        print_colored(ERROR_COLOR, "Error printing metadata!");
         cart_handler_close(&cartHandler);
         return -1;
     }
     xmlCleanupParser();
     cart_handler_close(&cartHandler);
+    free_cart(&cart);
     return 0;
 }

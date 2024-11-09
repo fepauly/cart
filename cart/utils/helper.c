@@ -44,3 +44,4 @@ int days_between_dates(struct tm *date1, struct tm *date2) {
     int days_diff = seconds_diff / (60 * 60 * 24);
     return days_diff;
 }
+
