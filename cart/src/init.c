@@ -4,6 +4,7 @@
 #include "helper.h"
 #include "string.h"
 
+// Function to handle the 'init' command
 int cmd_init(int argc, char *argv[]) {
     if (argc == 1) {
         print_colored(ERROR_COLOR, "NOPE. Please provide a project name.\nFor more help try: cart init help");

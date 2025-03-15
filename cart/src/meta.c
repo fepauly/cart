@@ -4,6 +4,7 @@
 #include "cart.h"
 #include <string.h>
 
+// Function to handle the 'meta' command
 int cmd_meta(int argc, char *argv[]) {
     if (argc < 2) {
         print_colored(ERROR_COLOR, "NOPE. There is a command missing my friend. Usage: cart meta <subcommand> [options]");
@@ -26,6 +27,7 @@ int cmd_meta(int argc, char *argv[]) {
     return -1;
 }
 
+// Function to handle the 'meta set' command
 int cmd_meta_set(int argc, char *argv[]) {
     if (argc > 1 && strcmp(argv[1], "help") == 0) {
         printf("Usage: cart meta set <entry> <value>\n");
@@ -88,13 +90,13 @@ int cmd_meta_set(int argc, char *argv[]) {
         cart_handler_close(&cartHandler);
         return -1;
     }
-    xmlCleanupParser();
     cart_handler_close(&cartHandler);
     free_cart(&cart);
     print_colored(GREEN_COLOR, "Updated metadata entry %s to '%s' successfully!", entry, new_value);
     return 0;
 }
 
+// Function to handle the 'meta get' command
 int cmd_meta_get(int argc, char *argv[]) {
     if (argc == 1) {
         print_colored(ERROR_COLOR, "NOPE. There are values missing my friend. Usage: cart meta get <entry>");
@@ -135,13 +137,13 @@ int cmd_meta_get(int argc, char *argv[]) {
         cart_handler_close(&cartHandler);
         return -1;
     }
-    xmlCleanupParser();
     cart_handler_close(&cartHandler);
     free_cart(&cart);
     print_colored(GREEN_COLOR, "%s: %s", entry, value);
     return 0;
 }
 
+// Function to handle the 'meta list' command
 int cmd_meta_list(int argc, char *argv[]) {
     if (argc > 1 && strcmp(argv[1], "help") == 0) {
         printf("Usage: cart meta list\n");

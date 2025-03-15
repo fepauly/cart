@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 
+// Function to handle the 'init' command
 int cmd_init(int argc, char *argv[]);
 
 #endif // INIT_H

@@ -7,6 +7,7 @@
 #define BLUE_COLOR   "\033[34m"
 #define GREEN_COLOR  "\033[32m"
 
-void print_colored(const char *color, const char *format, ...) ;
+// Function to print colored text
+void print_colored(const char *color, const char *format, ...);
 
 #endif // PRETTY_H

@@ -11,7 +11,7 @@
 #define MAX_STR_LEN 256
 #define MAX_DATE_LEN 11
 #define MAX_VERSION_LEN 10
-#define MAX_ID_LEN 3
+#define MAX_ID_LEN 4
 
 typedef struct {
     char name[MAX_STR_LEN];
@@ -55,12 +55,21 @@ typedef struct {
     int num_features;
 } Cart; 
 
-
 typedef struct CartHandler CartHandler; 
 
-struct CartHandler{
+struct CartHandler {
     xmlDocPtr doc;
 };
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Function pointer type for find_cart_file
+typedef int (*find_cart_file_fn)(char*, size_t);
+
+// Global function pointer that can be used to override find_cart_file behavior
+extern find_cart_file_fn find_cart_file_func;
 
 int cart_handler_open(CartHandler *handler, const char *filename);
 int cart_handler_close(CartHandler *handler);
@@ -80,5 +89,9 @@ Status string_to_status(const char *status_str);
 Priority string_to_priority(const char *priority_str);
 const char *priority_to_string(Priority priority);
 void free_cart(Cart *cart);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

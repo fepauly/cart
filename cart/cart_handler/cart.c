@@ -4,7 +4,12 @@
 #include <dirent.h>
 #include "pretty.h"
 #include "helper.h"
+#include "id.h"
 
+// Initialize the global function pointer
+find_cart_file_fn find_cart_file_func = NULL;
+
+// Function to open a CART file and parse its XML content
 int cart_handler_open(CartHandler *handler, const char *filename) {
     handler->doc = xmlParseFile(filename);
     if(handler->doc == NULL) {
@@ -23,16 +28,24 @@ int cart_handler_open(CartHandler *handler, const char *filename) {
     return 0;
 }
 
+// Function to close a CART file and free its resources
 int cart_handler_close(CartHandler *handler) {
-    if(handler->doc) {
+    if (handler == NULL) {
+        print_colored(ERROR_COLOR, "Invalid handler!");
+        return -1;
+    }
+    
+    if (handler->doc) {
         xmlFreeDoc(handler->doc);
         handler->doc = NULL;
+        xmlCleanupParser();  
         return 0;
     }
     print_colored(ERROR_COLOR, "File already closed!");
     return -1;
 }
 
+// Function to save the CART file to disk
 int cart_handler_save(CartHandler *handler, const char *filename) {
     if (handler == NULL || handler->doc == NULL) {
         print_colored(ERROR_COLOR, "File handler or document is NULL!");
@@ -47,6 +60,7 @@ int cart_handler_save(CartHandler *handler, const char *filename) {
     return 0;
 } 
 
+// Function to set a metadata entry in the CART structure
 int cart_handler_set_meta_entry(Cart *cart, const char *entry, const char *new_value) {
     if (cart == NULL || cart->metadata == NULL) {
         return -1; 
@@ -78,6 +92,7 @@ int cart_handler_set_meta_entry(Cart *cart, const char *entry, const char *new_v
     return 0;
 }
 
+// Function to get a metadata entry from the CART structure
 int cart_handler_get_meta_entry(Cart *cart, const char *entry, char *value) {
     if (cart == NULL || cart->metadata == NULL) {
         return -1; 
@@ -109,6 +124,7 @@ int cart_handler_get_meta_entry(Cart *cart, const char *entry, char *value) {
     return 0;
 }
 
+// Function to list all metadata entries in the CART structure
 int cart_handler_list_meta(Cart *cart) {
     if (cart != NULL && cart->metadata != NULL) {
         print_colored(BLUE_COLOR, "🗂  Project Metadata:\n");
@@ -126,10 +142,15 @@ int cart_handler_list_meta(Cart *cart) {
     return 0;
 }
 
-int find_cart_file(char *filename, size_t size) {
-    DIR *d;
+// Find cart file implementation that can be overridden by tests
+__attribute__((weak)) int find_cart_file(char *filename, size_t size) {
+    // If function pointer is set (e.g. by tests), use that implementation
+    if (find_cart_file_func != NULL) {
+        return find_cart_file_func(filename, size);
+    }
 
-    d = opendir(".");
+    // Default implementation
+    DIR *d = opendir(".");
     if (d) {
         struct dirent *dir;
         while ((dir = readdir(d)) != NULL) {
@@ -140,12 +161,12 @@ int find_cart_file(char *filename, size_t size) {
                 return 0;
             }
         }
-
         closedir(d);
     }
     return -1;
 }
 
+// Function to convert a CART structure to an XML document
 xmlDocPtr cart_to_doc(const Cart *cart) {
     xmlDocPtr doc = xmlNewDoc(BAD_CAST "1.0");
     xmlNodePtr root_node = xmlNewNode(NULL, BAD_CAST "project");
@@ -178,6 +199,7 @@ xmlDocPtr cart_to_doc(const Cart *cart) {
     return doc;
 }
 
+// Function to convert an XML document to a CART structure
 Cart *doc_to_cart(xmlDocPtr doc) {
     Cart *cart = (Cart *)malloc(sizeof(Cart));
     memset(cart, 0, sizeof(Cart));
@@ -228,6 +250,8 @@ Cart *doc_to_cart(xmlDocPtr doc) {
                     strncpy(feature->id, (const char *)id, sizeof(feature->id) - 1);
                     xmlFree(id);
 
+                    mark_id_as_used(feature->id);
+
                     xmlChar *alias = xmlGetProp(feature_node, BAD_CAST "alias");
                     strncpy(feature->alias, (const char *)alias, sizeof(feature->alias) - 1);
                     xmlFree(alias);
@@ -246,8 +270,14 @@ Cart *doc_to_cart(xmlDocPtr doc) {
                             xmlNodePtr tag_node = feature_detail->children;
                             while (tag_node != NULL && feature->num_tags < MAX_TAGS) {
                                 if (strcmp((const char *)tag_node->name, "tag") == 0) {
-                                    strncpy(feature->tags[feature->num_tags], (const char *)xmlNodeGetContent(tag_node), sizeof(feature->tags[feature->num_tags]) - 1);
-                                    feature->num_tags++;
+                                    xmlChar *content = xmlNodeGetContent(tag_node);
+                                    if (content) {
+                                        strncpy(feature->tags[feature->num_tags], (const char *)content, 
+                                                sizeof(feature->tags[feature->num_tags]) - 1);
+                                        feature->tags[feature->num_tags][sizeof(feature->tags[feature->num_tags]) - 1] = '\0';
+                                        xmlFree(content);
+                                        feature->num_tags++;
+                                    }
                                 }
                                 tag_node = tag_node->next;
                             }
@@ -264,6 +294,7 @@ Cart *doc_to_cart(xmlDocPtr doc) {
     return cart;
 }
 
+// Function to write a CART structure to a CART file
 int cart_handler_write_project(CartHandler *handler, const Cart *cart) {
     if (handler == NULL || cart == NULL) {
         return -1;
@@ -272,19 +303,90 @@ int cart_handler_write_project(CartHandler *handler, const Cart *cart) {
     return handler->doc ? 0 : -1;
 }
 
+// Function to read a CART structure from a CART file
 int cart_handler_read_project(CartHandler *handler, Cart *cart) {
     if (handler == NULL || cart == NULL || handler->doc == NULL) {
         return -1;
     }
+
+    // Free existing cart contents first
+    free_cart(cart);
+
+    // Parse the XML document into a new cart structure
     Cart *parsed_cart = doc_to_cart(handler->doc);
     if (parsed_cart == NULL) {
         return -1;
     }
-    *cart = *parsed_cart;
+
+    // Allocate new memory for the destination cart
+    cart->metadata = (Metadata *)malloc(sizeof(Metadata));
+    if (!cart->metadata) {
+        free_cart(parsed_cart);
+        free(parsed_cart);
+        return -1;
+    }
+    memcpy(cart->metadata, parsed_cart->metadata, sizeof(Metadata));
+
+    // Allocate and copy features
+    cart->features = (Feature **)malloc(MAX_FEATURES * sizeof(Feature *));
+    if (!cart->features) {
+        free(cart->metadata);
+        cart->metadata = NULL;
+        free_cart(parsed_cart);
+        free(parsed_cart);
+        return -1;
+    }
+
+    // Initialize all feature pointers to NULL
+    for (int i = 0; i < MAX_FEATURES; i++) {
+        cart->features[i] = NULL;
+    }
+
+    // Copy each feature
+    cart->num_features = parsed_cart->num_features;
+    for (int i = 0; i < parsed_cart->num_features; i++) {
+        cart->features[i] = (Feature *)malloc(sizeof(Feature));
+        if (!cart->features[i]) {
+            free_cart(cart);
+            free_cart(parsed_cart);
+            free(parsed_cart);
+            return -1;
+        }
+        
+        // Copy scalar fields explicitly using correct field names
+        strncpy(cart->features[i]->id, parsed_cart->features[i]->id, sizeof(cart->features[i]->id) - 1);
+        cart->features[i]->id[sizeof(cart->features[i]->id) - 1] = '\0'; // Ensure null termination
+        
+        strncpy(cart->features[i]->name, parsed_cart->features[i]->name, sizeof(cart->features[i]->name) - 1);
+        cart->features[i]->name[sizeof(cart->features[i]->name) - 1] = '\0';
+        
+        strncpy(cart->features[i]->description, parsed_cart->features[i]->description, sizeof(cart->features[i]->description) - 1);
+        cart->features[i]->description[sizeof(cart->features[i]->description) - 1] = '\0';
+        
+        // Copy alias field
+        strncpy(cart->features[i]->alias, parsed_cart->features[i]->alias, sizeof(cart->features[i]->alias) - 1);
+        cart->features[i]->alias[sizeof(cart->features[i]->alias) - 1] = '\0';
+        
+        // Copy enum values
+        cart->features[i]->status = parsed_cart->features[i]->status;
+        cart->features[i]->priority = parsed_cart->features[i]->priority;
+        
+        // Copy tags carefully
+        cart->features[i]->num_tags = parsed_cart->features[i]->num_tags;
+        for (int j = 0; j < parsed_cart->features[i]->num_tags; j++) {
+            strncpy(cart->features[i]->tags[j], parsed_cart->features[i]->tags[j], sizeof(cart->features[i]->tags[j]) - 1);
+            cart->features[i]->tags[j][sizeof(cart->features[i]->tags[j]) - 1] = '\0'; // Ensure null termination
+        }
+    }
+
+    // Clean up the temporary parsed cart
+    free_cart(parsed_cart);
     free(parsed_cart);
+    
     return 0;
 }
 
+// Function to convert a status enum to a string
 const char *status_to_string(Status status) {
     switch (status) {
         case STATUS_OPEN:
@@ -300,6 +402,7 @@ const char *status_to_string(Status status) {
     }
 }
 
+// Function to convert a string to a status enum
 Status string_to_status(const char *status_str) {
     if (strcmp(status_str, "DONE") == 0) {
         return STATUS_DONE;
@@ -314,6 +417,7 @@ Status string_to_status(const char *status_str) {
     }
 }
 
+// Function to convert a priority enum to a string
 const char *priority_to_string(Priority priority) {
     switch (priority) {
         case PRIORITY_LOW:
@@ -331,6 +435,7 @@ const char *priority_to_string(Priority priority) {
     }
 }
 
+// Function to convert a string to a priority enum
 Priority string_to_priority(const char *priority_str) {
     if (strcmp(priority_str, "LOW") == 0) {
         return PRIORITY_LOW;
@@ -341,12 +446,13 @@ Priority string_to_priority(const char *priority_str) {
     } else if (strcmp(priority_str, "CRITICAL") == 0) {
         return PRIORITY_CRITICAL;
     } else if (strcmp(priority_str, "UNKNOWN") == 0) {
-        return STATUS_UNKNOWN;
+        return PRIORITY_UNKNOWN;
     } else {
         return STATUS_UNKNOWN;
     }
 }
 
+// Function to free the memory allocated for a CART structure
 void free_cart(Cart *cart) {
     if (cart == NULL) {
         return;

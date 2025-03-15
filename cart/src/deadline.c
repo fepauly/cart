@@ -4,7 +4,9 @@
 #include "cart.h"
 #include "helper.h"
 #include <string.h>
+#include <time.h>
 
+// Function to handle the 'deadline' command
 int cmd_deadline(int argc, char *argv[]) {
     if (argc < 2) {
         print_colored(ERROR_COLOR, "NOPE. There is a command missing my friend. Usage: cart deadline <subcommand> [options]");
@@ -26,6 +28,7 @@ int cmd_deadline(int argc, char *argv[]) {
     return -1;
 }
 
+// Function to handle the 'deadline set' command
 int cmd_deadline_set(int argc, char *argv[]) {
     if (argc > 1 && strcmp(argv[1], "help") == 0) {
         printf("Usage: cart deadline set -d <day> -m <month> -y <year>\n");
@@ -117,6 +120,7 @@ int cmd_deadline_set(int argc, char *argv[]) {
     return 0;
 }
 
+// Function to handle the 'deadline get' command
 int cmd_deadline_get(int argc, char *argv[]) {
     if (argc > 1 && strcmp(argv[1], "help") == 0) {
         printf("Usage: cart deadline get\n");
@@ -164,6 +168,7 @@ int cmd_deadline_get(int argc, char *argv[]) {
     return 0;
 }
 
+// Function to handle the 'deadline check' command
 int cmd_deadline_check(int argc, char *argv[]) {
     if (argc > 1 && strcmp(argv[1], "help") == 0) {
         printf("Usage: cart deadline check\n");
@@ -234,4 +239,71 @@ int cmd_deadline_check(int argc, char *argv[]) {
     cart_handler_close(&cartHandler);
     free_cart(&cart);
     return 0;
+}
+
+// Helper function to get current date as string in MM/DD/YYYY format
+int get_current_date_str(char *date_str, size_t size) {
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    
+    if (date_str == NULL || size < 11) { // Need at least 11 chars for MM/DD/YYYY\0
+        return -1;
+    }
+    
+    snprintf(date_str, size, "%02d/%02d/%04d", 
+             t->tm_mon + 1,    // tm_mon is 0-based
+             t->tm_mday,
+             t->tm_year + 1900); // tm_year is years since 1900
+    
+    return 0;
+}
+
+// Helper function to get current date in tm structure
+int get_current_date(struct tm *date) {
+    if (date == NULL) {
+        return -1;
+    }
+    
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    *date = *t;
+    return 0;
+}
+
+// Helper function to convert string date to tm structure
+int convert_str_to_date(const char *date_str, struct tm *date) {
+    if (date_str == NULL || date == NULL) {
+        return -1;
+    }
+    
+    int month, day, year;
+    if (sscanf(date_str, "%d/%d/%d", &month, &day, &year) != 3) {
+        return -1;
+    }
+    
+    memset(date, 0, sizeof(struct tm));
+    date->tm_year = year - 1900;  // Convert to years since 1900
+    date->tm_mon = month - 1;     // Convert to 0-based month
+    date->tm_mday = day;
+    
+    return 0;
+}
+
+// Helper function to calculate days between two dates
+int days_between_dates(struct tm *date1, struct tm *date2) {
+    if (date1 == NULL || date2 == NULL) {
+        return -1;
+    }
+    
+    // Convert to time_t (seconds since epoch)
+    time_t time1 = mktime(date1);
+    time_t time2 = mktime(date2);
+    
+    if (time1 == -1 || time2 == -1) {
+        return -1;
+    }
+    
+    // Calculate difference in days
+    const int seconds_per_day = 60 * 60 * 24;
+    return (int)((time2 - time1) / seconds_per_day);
 }
