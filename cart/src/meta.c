@@ -37,7 +37,6 @@ int cmd_meta_set(int argc, char *argv[]) {
         printf("The entry 'created' cannot be updated. Sorry.\n");
         return 0;
     }
-
     if (argc > 1 && strcmp(argv[1], "deadline") == 0) {
         printf("To set the deadline use: cart deadline set -d <day> -m <month> -y <year>\n");
         return 0;
@@ -47,7 +46,6 @@ int cmd_meta_set(int argc, char *argv[]) {
         return -1;
     }
 
-
     char filename[MAX_STR_LEN] = {0};
     if (find_cart_file(filename, sizeof(filename)) == 0) {
         print_colored(BLUE_COLOR, "Found project: %s\n", filename);
@@ -56,9 +54,10 @@ int cmd_meta_set(int argc, char *argv[]) {
         return -1;
     }
 
-    // Open project file
-    CartHandler cartHandler;
+    // Initialize cart and cartHandler structures
     Cart cart = {0};
+    CartHandler cartHandler = {0};
+    
     if (cart_handler_open(&cartHandler, filename) != 0) {
         print_colored(ERROR_COLOR, "Failed to read %s!", filename);
         return -1;
@@ -75,23 +74,27 @@ int cmd_meta_set(int argc, char *argv[]) {
 
     if (cart_handler_set_meta_entry(&cart, entry, new_value) != 0) {
         print_colored(ERROR_COLOR, "Failed to set metadata entry!");
+        free_cart(&cart);
         cart_handler_close(&cartHandler);
         return -1;
     }
 
     if(cart_handler_write_project(&cartHandler, &cart) != 0) {
         print_colored(ERROR_COLOR, "Error interpreting XML!");
+        free_cart(&cart);
         cart_handler_close(&cartHandler);
         return -1;
     }
 
     if (cart_handler_save(&cartHandler, filename) != 0) {
         print_colored(ERROR_COLOR, "Failed to set metadata entry to file!");
+        free_cart(&cart);
         cart_handler_close(&cartHandler);
         return -1;
     }
-    cart_handler_close(&cartHandler);
+    
     free_cart(&cart);
+    cart_handler_close(&cartHandler);
     print_colored(GREEN_COLOR, "Updated metadata entry %s to '%s' successfully!", entry, new_value);
     return 0;
 }
@@ -106,7 +109,6 @@ int cmd_meta_get(int argc, char *argv[]) {
         printf("Usage: cart meta get <entry>\n");
         return 0;
     }
-
     char filename[MAX_STR_LEN] = {0};
     if (find_cart_file(filename, sizeof(filename)) == 0) {
         print_colored(BLUE_COLOR, "Found project: %s\n", filename);
@@ -114,31 +116,36 @@ int cmd_meta_get(int argc, char *argv[]) {
         print_colored(ERROR_COLOR, "Couldn't find a CART project in current directory my friend!");
         return -1;
     }
-
+    
+    // We must initialize cart before using it
+    Cart cart = {0};
+    
     // Open project file
-    CartHandler cartHandler;
+    CartHandler cartHandler = {0}; // Initialize cartHandler
+    
     if (cart_handler_open(&cartHandler, filename) != 0) {
         print_colored(ERROR_COLOR, "Failed to read %s!", filename);
         return -1;
     }
-
+    
     const char *entry = argv[1];
     char value[MAX_STR_LEN] = {0};
-    Cart cart = {0};
-
+    
     if(cart_handler_read_project(&cartHandler, &cart) != 0) {
         print_colored(ERROR_COLOR, "Error interpreting XML!");
         cart_handler_close(&cartHandler);
         return -1;
     }
-
+    
     if (cart_handler_get_meta_entry(&cart, entry, value) != 0) {
         print_colored(ERROR_COLOR, "Entry not found or empty!");
+        free_cart(&cart);
         cart_handler_close(&cartHandler);
         return -1;
     }
-    cart_handler_close(&cartHandler);
+    
     free_cart(&cart);
+    cart_handler_close(&cartHandler);
     print_colored(GREEN_COLOR, "%s: %s", entry, value);
     return 0;
 }
@@ -158,9 +165,10 @@ int cmd_meta_list(int argc, char *argv[]) {
         return -1;
     }
 
-    // Open project file
-    CartHandler cartHandler;
+    // Initialize cart and cartHandler structures
     Cart cart = {0};
+    CartHandler cartHandler = {0};
+    
     if (cart_handler_open(&cartHandler, filename) != 0) {
         print_colored(ERROR_COLOR, "Failed to read %s!", filename);
         return -1;
@@ -174,11 +182,13 @@ int cmd_meta_list(int argc, char *argv[]) {
 
     if (cart_handler_list_meta(&cart) != 0) {
         print_colored(ERROR_COLOR, "Error printing metadata!");
+        free_cart(&cart);
         cart_handler_close(&cartHandler);
         return -1;
     }
+    
     xmlCleanupParser();
-    cart_handler_close(&cartHandler);
     free_cart(&cart);
+    cart_handler_close(&cartHandler);
     return 0;
 }

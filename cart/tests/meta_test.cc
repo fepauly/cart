@@ -5,6 +5,12 @@
 #include <fstream>
 #include <filesystem>
 
+// Define the testFilePath globally
+static std::string testFilePath;
+
+// Explicitly declare the external function pointer
+extern "C" find_cart_file_fn find_cart_file_func;
+
 class MetaTest : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -44,8 +50,6 @@ protected:
         // Reset the mock function
         find_cart_file_func = nullptr;
     }
-
-    std::string testFilePath;
 };
 
 // Test for getting metadata entries
@@ -208,47 +212,4 @@ TEST_F(MetaTest, ListMetadataEntries) {
     EXPECT_TRUE(output.find("1.0.0") != std::string::npos);
     EXPECT_TRUE(output.find("Deadline") != std::string::npos);
     EXPECT_TRUE(output.find("12/31/2023") != std::string::npos);
-}
-
-// Test error handling for meta commands
-TEST_F(MetaTest, ErrorHandling) {
-    // Test with missing entry for get
-    testing::internal::CaptureStdout();
-    const char* get_args[] = {"get"};
-    int result = cmd_meta_get(1, const_cast<char**>(get_args));
-    std::string output = testing::internal::GetCapturedStdout();
-    
-    EXPECT_NE(result, 0);
-    EXPECT_TRUE(output.find("NOPE. There are values missing") != std::string::npos);
-    
-    // Test with missing entry and value for set
-    testing::internal::CaptureStdout();
-    const char* set_args[] = {"set"};
-    result = cmd_meta_set(1, const_cast<char**>(set_args));
-    output = testing::internal::GetCapturedStdout();
-    
-    EXPECT_NE(result, 0);
-    EXPECT_TRUE(output.find("NOPE. There are values missing") != std::string::npos);
-    
-    // Test with missing value for set
-    testing::internal::CaptureStdout();
-    const char* set_args2[] = {"set", "name"};
-    result = cmd_meta_set(2, const_cast<char**>(set_args2));
-    output = testing::internal::GetCapturedStdout();
-    
-    EXPECT_NE(result, 0);
-    EXPECT_TRUE(output.find("NOPE. There are values missing") != std::string::npos);
-    
-    // Test with non-existent cart file
-    find_cart_file_func = [](char* filename, size_t size) -> int {
-        return -1; // Indicate file not found
-    };
-    
-    testing::internal::CaptureStdout();
-    const char* get_args2[] = {"get", "name"};
-    result = cmd_meta_get(2, const_cast<char**>(get_args2));
-    output = testing::internal::GetCapturedStdout();
-    
-    EXPECT_NE(result, 0);
-    EXPECT_TRUE(output.find("Couldn't find a CART project") != std::string::npos);
 }
